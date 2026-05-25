@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kalkulator Mbizmarket F&B</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+      :root {
+        --primary: #2563eb;
+        --success: #16a34a;
+        --warning: #ca8a04;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+      }
+
+      * {
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .container {
+        max-width: 800px;
+        width: 100%;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        color: var(--primary);
+        margin-bottom: 5px;
+      }
+
+      .header p {
+        color: var(--text-muted);
+        margin-top: 0;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 24px;
+        border: 1px solid var(--border);
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      .form-row {
+        display: flex;
+        gap: 16px;
+      }
+
+      .form-row .form-group {
+        flex: 1;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-main);
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 16px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: var(--primary);
+      }
+
+      .input-group {
+        position: relative;
+        display: flex;
+      }
+
+      .input-group-text {
+        padding: 10px 16px;
+        background: #f1f5f9;
+        border: 1px solid var(--border);
+        border-right: none;
+        border-radius: 6px 0 0 6px;
+        color: var(--text-muted);
+        font-weight: bold;
+      }
+
+      .input-group input {
+        border-radius: 0 6px 6px 0;
+      }
+
+      button {
+        width: 100%;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 14px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: #1d4ed8;
+      }
+
+      .btn-pdf {
+        background-color: #ef4444;
+      }
+      .btn-pdf:hover {
+        background-color: #dc2626;
+      }
+
+      .btn-excel {
+        background-color: #10b981;
+      }
+      .btn-excel:hover {
+        background-color: #059669;
+      }
+
+      /* Area cetak agar tidak transparan */
+      #printArea {
+        background-color: var(--bg);
+        padding: 15px;
+        border-radius: 12px;
+      }
+
+      .results-container {
+        display: none;
+        gap: 20px;
+      }
+
+      .result-card {
+        flex: 1;
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+      }
+
+      .result-card.toko {
+        background: linear-gradient(135deg, #16a34a, #15803d);
+      }
+
+      .result-card.pemesan {
+        background: linear-gradient(135deg, #ca8a04, #a16207);
+      }
+
+      .result-card h3 {
+        margin-top: 0;
+        font-size: 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+      }
+
+      .result-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .result-row.total {
+        font-size: 20px;
+        font-weight: bold;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 2px dashed rgba(255, 255, 255, 0.5);
+      }
+
+      .detail-info {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-align: center;
+        margin-top: 15px;
+      }
+
+      #actionButtons {
+        display: none;
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      @media (max-width: 600px) {
+        .form-row,
+        .results-container,
+        #actionButtons {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Kalkulator Mbizmarket</h1>
+        <p>Sistem Proporsi Pesanan F&B (Real & Non-Real)</p>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label>Total Nominal Pesanan di Platform (Net Total Bayar)</label>
+          <div class="input-group">
+            <span class="input-group-text">Rp</span>
+            <input
+              type="text"
+              id="totalPO"
+              placeholder="Contoh: 12.438.205"
+              onkeyup="formatCurrency(this)"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Total Qty / Porsi (Sesuai PO)</label>
+            <input type="number" id="qtyTotal" placeholder="Contoh: 175" />
+          </div>
+          <div class="form-group">
+            <label>Qty / Porsi Real (Fisik Dikirim)</label>
+            <input type="number" id="qtyReal" placeholder="Contoh: 150" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Total Modal / HPP (Untuk Qty Real Saja)</label>
+          <div class="input-group">
+            <span class="input-group-text">Rp</span>
+            <input
+              type="text"
+              id="modal"
+              placeholder="Contoh: 1.000.000"
+              onkeyup="formatCurrency(this)"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Pajak Daerah (10%) Dibayar Oleh:</label>
+          <select id="pembayarPajak">
+            <option value="toko">
+              Toko (Dipotong dari dana cair untuk disetor)
+            </option>
+            <option value="pemesan">
+              Pemesan Langsung (Aman, tidak dipotong)
+            </option>
+          </select>
+        </div>
+
+        <button onclick="hitungProporsi()">Hitung Proporsi & Pendapatan</button>
+      </div>
+
+      <div id="printArea">
+        <div id="resultsArea" class="results-container">
+          <div class="result-card pemesan">
+            <h3>🟨 Hak Pemesan (Cashback)</h3>
+            <div class="result-row">
+              <span>Porsi Fiktif:</span>
+              <span id="outPorsiFiktif">-</span>
+            </div>
+            <div class="result-row">
+              <span>Hak Dana Cair:</span>
+              <span id="outHakCairPemesan">-</span>
+            </div>
+            <div class="result-row">
+              <span>Titipan Pajak Daerah:</span>
+              <span id="outPajakPemesan">-</span>
+            </div>
+            <div class="result-row total">
+              <span>TOTAL CASHBACK:</span>
+              <span id="outTotalCashback">-</span>
+            </div>
+          </div>
+
+          <div class="result-card toko">
+            <h3>🟩 Keuangan Toko (Real)</h3>
+            <div class="result-row">
+              <span>Porsi Real:</span>
+              <span id="outPorsiReal">-</span>
+            </div>
+            <div class="result-row">
+              <span>Hak Dana Cair:</span>
+              <span id="outHakCairToko">-</span>
+            </div>
+            <div class="result-row">
+              <span>Simpanan Pajak Daerah:</span>
+              <span id="outPajakToko">-</span>
+            </div>
+            <div class="result-row">
+              <span>Modal / HPP:</span>
+              <span id="outModal">-</span>
+            </div>
+            <div class="result-row total">
+              <span>LABA BERSIH TOKO:</span>
+              <span id="outLabaBersih">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="detailPotongan" class="detail-info" style="display: none">
+          <p>
+            <strong>Detail Sistem Mbizmarket:</strong> DPP:
+            <span id="infoDPP"></span> | Pajak Daerah 10%:
+            <span id="infoPB1"></span> | PPh 0.5%: <span id="infoPPh"></span> |
+            Fee Platform 2.4975%: <span id="infoFee"></span> | Total Cair:
+            <span id="infoCair"></span>
+          </p>
+        </div>
+      </div>
+
+      <div id="actionButtons">
+        <button class="btn-pdf" onclick="cetakPDF()">
+          📄 Cetak / Download PDF
+        </button>
+        <button class="btn-excel" onclick="cetakExcel()">
+          📊 Download Excel
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let calcData = {};
+
+      function formatCurrency(input) {
+        let value = input.value.replace(/[^,\d]/g, "").toString();
+        let split = value.split(",");
+        let sisa = split[0].length % 3;
+        let rupiah = split[0].substr(0, sisa);
+        let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+        if (ribuan) {
+          let separator = sisa ? "." : "";
+          rupiah += separator + ribuan.join(".");
+        }
+        rupiah = split[1] != undefined ? rupiah + "," + split[1] : rupiah;
+        input.value = rupiah;
+      }
+
+      function parseCurrency(str) {
+        if (!str) return 0;
+        return parseFloat(str.replace(/\./g, ""));
+      }
+
+      function formatIDR(angka) {
+        return new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          minimumFractionDigits: 0,
+        }).format(Math.round(angka));
+      }
+
+      function hitungProporsi() {
+        const totalPO = parseCurrency(document.getElementById("totalPO").value);
+        const qtyTotal =
+          parseFloat(document.getElementById("qtyTotal").value) || 0;
+        const qtyReal =
+          parseFloat(document.getElementById("qtyReal").value) || 0;
+        const modal = parseCurrency(document.getElementById("modal").value);
+        const pembayarPajak = document.getElementById("pembayarPajak").value;
+
+        if (totalPO === 0 || qtyTotal === 0) {
+          alert("Harap isi Total Nominal dan Total Qty terlebih dahulu.");
+          return;
+        }
+        if (qtyReal > qtyTotal) {
+          alert("Qty Real tidak boleh lebih besar dari Total Qty!");
+          return;
+        }
+
+        const dppBiasa = totalPO / 1.095;
+        const dpp = Math.round(dppBiasa);
+
+        const totalPB1 = Math.round(dpp * 0.1);
+        const potonganPPh = Math.round(dpp * 0.005);
+
+        const baseFee = Math.round(dpp * 0.0225);
+        const ppnFee = Math.round(baseFee * 0.11);
+        const potonganFee = baseFee + ppnFee;
+
+        const totalPencairan = totalPO - potonganFee;
+
+        const qtyNonReal = qtyTotal - qtyReal;
+        const persenReal = qtyReal / qtyTotal;
+        const persenNonReal = qtyNonReal / qtyTotal;
+
+        const hakCairPemesan = totalPencairan * persenNonReal;
+        const tanggunganPajakPemesan =
+          pembayarPajak === "toko" ? totalPB1 * persenNonReal : 0;
+        const cashbackBersih = hakCairPemesan - tanggunganPajakPemesan;
+
+        const hakCairToko = totalPencairan * persenReal;
+        const kewajibanPajakToko =
+          pembayarPajak === "toko" ? totalPB1 * persenReal : 0;
+        const pendapatanBersihToko = hakCairToko - kewajibanPajakToko;
+        const labaBersih = pendapatanBersihToko - modal;
+
+        // Simpan ke Variabel Global (Untuk ditarik ke Excel)
+        calcData = {
+          totalPO,
+          qtyTotal,
+          qtyReal,
+          qtyNonReal,
+          modal,
+          dpp,
+          totalPB1,
+          potonganPPh,
+          potonganFee,
+          totalPencairan,
+          persenReal,
+          persenNonReal,
+          hakCairPemesan,
+          tanggunganPajakPemesan,
+          cashbackBersih,
+          hakCairToko,
+          kewajibanPajakToko,
+          labaBersih,
+        };
+
+        document.getElementById("outPorsiFiktif").innerText =
+          `${qtyNonReal} Qty (${(persenNonReal * 100).toFixed(1)}%)`;
+        document.getElementById("outHakCairPemesan").innerText =
+          formatIDR(hakCairPemesan);
+        document.getElementById("outPajakPemesan").innerText =
+          "- " + formatIDR(tanggunganPajakPemesan);
+        document.getElementById("outTotalCashback").innerText =
+          formatIDR(cashbackBersih);
+
+        document.getElementById("outPorsiReal").innerText =
+          `${qtyReal} Qty (${(persenReal * 100).toFixed(1)}%)`;
+        document.getElementById("outHakCairToko").innerText =
+          formatIDR(hakCairToko);
+        document.getElementById("outPajakToko").innerText =
+          formatIDR(kewajibanPajakToko);
+        document.getElementById("outModal").innerText = "- " + formatIDR(modal);
+        document.getElementById("outLabaBersih").innerText =
+          formatIDR(labaBersih);
+
+        document.getElementById("infoDPP").innerText = formatIDR(dpp);
+        document.getElementById("infoPB1").innerText = formatIDR(totalPB1);
+        document.getElementById("infoPPh").innerText = formatIDR(potonganPPh);
+        document.getElementById("infoFee").innerText = formatIDR(potonganFee);
+        document.getElementById("infoCair").innerText =
+          formatIDR(totalPencairan);
+
+        document.getElementById("resultsArea").style.display = "flex";
+        document.getElementById("detailPotongan").style.display = "block";
+        document.getElementById("actionButtons").style.display = "flex";
+      }
+
+      // --- PERBAIKAN FUNGSI CETAK PDF ---
+      function cetakPDF() {
+        const element = document.getElementById("printArea");
+
+        // 1. Kembalikan posisi scroll layar ke atas agar kamera canvas tidak blank
+        window.scrollTo(0, 0);
+
+        // 2. Set parameter scrollY ke 0 dan tambahkan background color
+        const opt = {
+          margin: 0.3,
+          filename: "Kalkulasi_Mbizmarket.pdf",
+          image: { type: "jpeg", quality: 1 },
+          html2canvas: {
+            scale: 2,
+            scrollY: 0,
+            useCORS: true,
+            backgroundColor: "#f8fafc",
+          },
+          jsPDF: { unit: "in", format: "letter", orientation: "landscape" },
+        };
+
+        // 3. Eksekusi print
+        html2pdf().set(opt).from(element).save();
+      }
+
+      function cetakExcel() {
+        if (!calcData.dpp) return;
+
+        const data = [
+          ["LAPORAN PROPORSI PESANAN MBIZMARKET"],
+          [],
+          ["INFORMASI PESANAN", ""],
+          ["Total Bayar di PO", calcData.totalPO],
+          ["Total Qty", calcData.qtyTotal],
+          ["Qty Real", calcData.qtyReal],
+          ["Qty Fiktif", calcData.qtyNonReal],
+          [],
+          ["RINCIAN POTONGAN SISTEM", ""],
+          ["DPP (Dasar Pengenaan Pajak)", calcData.dpp],
+          ["Pajak Daerah (10%)", calcData.totalPB1],
+          ["PPh (0.5%)", calcData.potonganPPh],
+          ["Fee Platform (2.4975%)", calcData.potonganFee],
+          ["Total Dana Cair", calcData.totalPencairan],
+          [],
+          ["HAK PEMESAN (CASHBACK)", ""],
+          ["Proporsi Porsi", (calcData.persenNonReal * 100).toFixed(1) + "%"],
+          ["Hak Dana Cair", calcData.hakCairPemesan],
+          ["Titipan Pajak Daerah", calcData.tanggunganPajakPemesan],
+          ["TOTAL CASHBACK BERSIH", calcData.cashbackBersih],
+          [],
+          ["KEUANGAN TOKO (REAL)", ""],
+          ["Proporsi Porsi", (calcData.persenReal * 100).toFixed(1) + "%"],
+          ["Hak Dana Cair", calcData.hakCairToko],
+          ["Simpanan Pajak Daerah", calcData.kewajibanPajakToko],
+          ["Modal / HPP", calcData.modal],
+          ["LABA BERSIH TOKO", calcData.labaBersih],
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Laporan_Mbiz");
+        XLSX.writeFile(wb, "Kalkulasi_Mbizmarket.xlsx");
+      }
+    </script>
+  </body>
+</html>
